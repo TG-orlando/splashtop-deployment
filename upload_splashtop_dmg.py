@@ -37,7 +37,7 @@ def run(cmd: list[str], **kwargs) -> subprocess.CompletedProcess:
     return subprocess.run(cmd, check=True, capture_output=True, text=True, **kwargs)
 
 
-def curl_json(method: str, url: str, token: str, data: dict | None = None) -> dict:
+def curl_json(method: str, url: str, token: str, data=None) -> dict:
     cmd = [
         "curl", "-fsSL", "-X", method,
         "-H", f"Authorization: Bearer {token}",
