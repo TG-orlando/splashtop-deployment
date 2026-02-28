@@ -3,106 +3,96 @@
 ## Files
 | File | Purpose |
 |------|---------|
-| `Install-SplashtopStreamer.sh` | Silent install script (runs as root via Rippling) |
+| `Install-SplashtopStreamer.sh` | Silent install script — downloads DMG, mounts it, installs PKG |
+| `upload_splashtop_dmg.py` | Uploads your Splashtop deployment DMG to GitHub Releases |
 | `SplashtopStreamer-Privacy.mobileconfig` | PPPC profile — pre-grants Screen Recording + Accessibility |
 
 ---
 
-## Step 1 — Get your deployment PKG URL
+## Why the full DMG is required (not just the PKG)
 
-1. Log into **Splashtop Business Admin Console**
-2. Go to **Management → Deployment**
-3. Click **Download Deployment Installer** → choose macOS
-4. Splashtop gives you a direct `.pkg` download link — copy it
-5. Paste that URL into `Install-SplashtopStreamer.sh` as the `PKG_URL` value
+The Splashtop deployment DMG contains two files:
+- `Splashtop Streamer.pkg` — the installer
+- `.PreInstall` — a plist with your team's deploy code embedded
 
-> The deployment PKG already has your team's credentials/code embedded — no extra
-> configuration needed post-install.
-
----
-
-## Step 2 — Host the install script
-
-Option A (recommended — mirrors ActivTrak setup):
-- Push this repo to GitHub
-- Use the raw URL in Rippling, e.g.:
-  `https://raw.githubusercontent.com/YOUR-ORG/REPO/main/Install-SplashtopStreamer.sh`
-
-Option B:
-- Paste the script body directly into Rippling's Custom Script editor
+The PKG's `preinstall` script reads `.PreInstall` **from the DMG mount point** to apply
+your deploy code. If you extract the PKG and install it standalone, the code is silently
+skipped and Splashtop installs with no team association. The install script mounts the
+full DMG first, then runs `installer` against the PKG inside it.
 
 ---
 
-## Step 3 — Verify the code signing values (one-time)
+## Step 1 — Upload the DMG (one time, re-run when you get a new DMG)
 
-On any Mac that already has Splashtop installed, run:
+Download your deployment DMG from the Splashtop Business Admin Console:
+**Management → Deployment → Download Deployment Installer (macOS)**
 
+Then run the upload script:
 ```bash
-# Get bundle ID
-codesign -dv /Applications/Splashtop\ Streamer.app 2>&1 | grep Identifier
-
-# Get Team ID (subject.OU in the mobileconfig)
-codesign -dv --verbose=4 /Applications/Splashtop\ Streamer.app 2>&1 | grep TeamIdentifier
-
-# Get the full code requirement string
-codesign -dr - /Applications/Splashtop\ Streamer.app 2>&1
+export GITHUB_TOKEN=ghp_yourtoken
+python3 upload_splashtop_dmg.py
 ```
 
-Update `SplashtopStreamer-Privacy.mobileconfig` with the real values if they differ
-from what's in the file.
+The script finds the newest `Splashtop_Streamer_Mac_DEPLOY_INSTALLER_*.dmg` in
+`~/Downloads`, uploads it to GitHub Releases as `SplashtopStreamer.dmg`, and prints
+the download URL to confirm.
 
 ---
 
-## Step 4 — Deploy in Rippling (order matters)
+## Step 2 — Deploy the privacy profile FIRST in Rippling
 
-### 4a. Deploy the privacy profile FIRST
-- Rippling MDM → **Profiles** → Upload → select `SplashtopStreamer-Privacy.mobileconfig`
-- Assign to the target device group
-- This runs silently with zero user interaction
+Upload `SplashtopStreamer-Privacy.mobileconfig` via:
+**Rippling MDM → Devices → Configuration Profiles → Upload Profile**
 
-### 4b. Deploy the install script
-- Rippling MDM → **Custom Scripts** → New Script
-- Set type: **Shell**, run as: **root**
-- Either paste the script body or point to the hosted raw URL:
+Assign it to your target device group. This silently pre-approves Screen Recording
+and Accessibility for Splashtop before any device ever runs the installer.
+**Deploy this before the install script — order matters.**
 
-**One-liner for Rippling:**
+---
+
+## Step 3 — Deploy the install script in Rippling
+
+**Rippling MDM → Devices → Custom Scripts → Add Script**
+- Type: Shell
+- Run as: Root
+- Trigger: On enrollment / on demand
+
+**One-liner:**
 ```bash
-sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/YOUR-ORG/REPO/main/Install-SplashtopStreamer.sh)"
+sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/TG-orlando/splashtop-deployment/main/Install-SplashtopStreamer.sh)"
 ```
-
----
-
-## Why both files are needed
-
-| Without profile | With profile |
-|-----------------|--------------|
-| macOS pops up "Splashtop wants Screen Recording access" on first session | Pre-approved — no prompt ever appears |
-| User must manually click Allow in System Settings | Fully silent |
-| Remote session shows black screen until approved | Works immediately after install |
-
----
-
-## macOS 14 Sonoma note on Screen Recording
-
-Apple tightened Screen Recording permissions in Sonoma. MDM-pushed PPPC profiles
-**do** work for pre-approval, but only if delivered via supervised MDM (which Rippling
-is, for company-owned devices). If a device is not supervised, the user will still
-get the Screen Recording prompt. Accessibility pre-approval works on all devices.
 
 ---
 
 ## Troubleshooting
 
-**Check install log:**
+**Check install log on a device:**
 ```bash
 cat /var/log/splashtop-install.log
 ```
 
-**Script ran but app not there:**
-- The Splashtop PKG may have installed the streamer as a LaunchDaemon/service rather
-  than a .app bundle. Check `/Library/LaunchDaemons/` for `com.splashtop.*` entries.
+**Confirm deploy code was applied:**
+The log will print a line like:
+```
+Deploy code found: WR7ZYPALWJA4
+```
+If it says `unknown`, the DMG's `.PreInstall` was not read — verify the DMG mounted correctly.
 
 **Permission prompts still appearing:**
-1. Verify the code requirement in the .mobileconfig matches the installed binary
-2. Confirm the profile was pushed before the app was first launched
-3. Verify the device is MDM-supervised in Rippling
+1. Verify the profile was pushed *before* the install script ran
+2. Confirm the device is MDM-supervised in Rippling (required for Screen Recording pre-approval)
+3. Accessibility pre-approval works on all supervised devices regardless
+
+**App not at `/Applications/Splashtop Streamer.app`:**
+Splashtop also registers a LaunchDaemon. Check:
+```bash
+sudo launchctl list | grep splashtop
+ls /Library/LaunchDaemons/com.splashtop.*
+```
+
+---
+
+## macOS Sonoma note
+
+Screen Recording pre-approval via MDM PPPC profiles requires a **supervised** device
+(company-owned, enrolled via Rippling). Accessibility works on all supervised devices.
