@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+    SplashtopStreamer-Privacy.mobileconfig
+    ======================================
+    Deploy this profile via Rippling MDM BEFORE (or alongside) the install script.
+    It pre-approves Screen Recording and Accessibility for Splashtop Streamer so
+    users never see permission prompts.
+
+    BEFORE DEPLOYING:
+    1. Verify the bundle ID:
+         codesign -dv /Applications/Splashtop\ Streamer.app 2>&1 | grep Identifier
+    2. Verify the Team ID (subject.OU):
+         codesign -dv --verbose=4 /Applications/Splashtop\ Streamer.app 2>&1 | grep TeamIdentifier
+    3. Replace YOURORG below with your actual org name.
+    4. You can regenerate UUIDs at: https://www.uuidgenerator.net/
+-->
+<plist version="1.0">
+<dict>
+
+    <key>PayloadDisplayName</key>
+    <string>Splashtop Streamer — Privacy Permissions</string>
+
+    <key>PayloadDescription</key>
+    <string>Pre-approves Screen Recording and Accessibility for Splashtop Streamer to enable silent, seamless MDM deployment.</string>
+
+    <key>PayloadIdentifier</key>
+    <string>com.yourorg.mdm.splashtop.privacy</string>
+
+    <key>PayloadOrganization</key>
+    <string>YOURORG</string>
+
+    <key>PayloadType</key>
+    <string>Configuration</string>
+
+    <key>PayloadUUID</key>
+    <string>A1B2C3D4-0001-0001-0001-A1B2C3D40001</string>
+
+    <key>PayloadVersion</key>
+    <integer>1</integer>
+
+    <key>PayloadScope</key>
+    <string>System</string>
+
+    <key>PayloadRemovalDisallowed</key>
+    <false/>
+
+    <key>PayloadContent</key>
+    <array>
+        <dict>
+            <key>PayloadDisplayName</key>
+            <string>Splashtop Streamer TCC Policy</string>
+
+            <key>PayloadDescription</key>
+            <string>Grants Screen Recording and Accessibility to Splashtop Streamer</string>
+
+            <key>PayloadIdentifier</key>
+            <string>com.yourorg.mdm.splashtop.privacy.tcc</string>
+
+            <key>PayloadOrganization</key>
+            <string>YOURORG</string>
+
+            <key>PayloadType</key>
+            <string>com.apple.TCC.configuration-profile-policy</string>
+
+            <key>PayloadUUID</key>
+            <string>A1B2C3D4-0002-0002-0002-A1B2C3D40002</string>
+
+            <key>PayloadVersion</key>
+            <integer>1</integer>
+
+            <key>Services</key>
+            <dict>
+
+                <!--
+                    Screen Recording — required for Splashtop to capture the display.
+                    Without this, the remote session shows a black screen.
+                    NOTE: On macOS 14+ (Sonoma), Apple restricted pre-approval of
+                    ScreenCapture via MDM for some app configurations. If it still
+                    prompts, see README notes on the workaround.
+                -->
+                <key>ScreenCapture</key>
+                <array>
+                    <dict>
+                        <key>Identifier</key>
+                        <string>com.splashtop.streamer</string>
+
+                        <key>IdentifierType</key>
+                        <string>bundleID</string>
+
+                        <!--
+                            Code requirement — ties the permission to the specific
+                            signed binary. Get the real value by running:
+                            codesign -dr - /Applications/Splashtop\ Streamer.app 2>&1
+                        -->
+                        <key>CodeRequirement</key>
+                        <string>identifier "com.splashtop.streamer" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = "CPQQ3AW49Y"</string>
+
+                        <key>Allowed</key>
+                        <true/>
+
+                        <key>StaticCode</key>
+                        <false/>
+                    </dict>
+                </array>
+
+                <!--
+                    Accessibility — required for Splashtop to inject keyboard/mouse
+                    input during remote sessions.
+                -->
+                <key>Accessibility</key>
+                <array>
+                    <dict>
+                        <key>Identifier</key>
+                        <string>com.splashtop.streamer</string>
+
+                        <key>IdentifierType</key>
+                        <string>bundleID</string>
+
+                        <key>CodeRequirement</key>
+                        <string>identifier "com.splashtop.streamer" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = "CPQQ3AW49Y"</string>
+
+                        <key>Allowed</key>
+                        <true/>
+
+                        <key>StaticCode</key>
+                        <false/>
+                    </dict>
+                </array>
+
+            </dict>
+        </dict>
+    </array>
+
+</dict>
+</plist>
