@@ -43,11 +43,11 @@
                 <array>
                     <dict>
                         <key>Identifier</key>
-                        <string>com.splashtop.streamer</string>
+                        <string>com.splashtop.Splashtop-Streamer</string>
                         <key>IdentifierType</key>
                         <string>bundleID</string>
                         <key>CodeRequirement</key>
-                        <string>identifier "com.splashtop.streamer" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = "CPQQ3AW49Y"</string>
+                        <string>identifier "com.splashtop.Splashtop-Streamer" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = "CPQQ3AW49Y"</string>
                         <key>Allowed</key>
                         <true/>
                         <key>StaticCode</key>
@@ -58,11 +58,11 @@
                 <array>
                     <dict>
                         <key>Identifier</key>
-                        <string>com.splashtop.streamer</string>
+                        <string>com.splashtop.Splashtop-Streamer</string>
                         <key>IdentifierType</key>
                         <string>bundleID</string>
                         <key>CodeRequirement</key>
-                        <string>identifier "com.splashtop.streamer" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = "CPQQ3AW49Y"</string>
+                        <string>identifier "com.splashtop.Splashtop-Streamer" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = "CPQQ3AW49Y"</string>
                         <key>Allowed</key>
                         <true/>
                         <key>StaticCode</key>
