@@ -5,11 +5,16 @@
 echo "=== Splashtop Diagnostic === $(date)"
 echo ""
 
+echo "--- Actual bundle ID ---"
+/usr/libexec/PlistBuddy -c "Print CFBundleIdentifier" \
+  "/Applications/Splashtop Streamer.app/Contents/Info.plist" 2>/dev/null || echo "Could not read Info.plist"
+echo ""
+
 echo "--- Processes running ---"
 ps aux | grep -i splashtop | grep -v grep || echo "NO splashtop processes found"
 echo ""
 
-echo "--- LaunchDaemon status ---"
+echo "--- LaunchDaemon/Agent status ---"
 launchctl list | grep splashtop || echo "Nothing in launchctl"
 echo ""
 
@@ -18,22 +23,38 @@ ls -la /Library/LaunchDaemons/com.splashtop.* 2>/dev/null || echo "No daemon pli
 ls -la /Library/LaunchAgents/com.splashtop.* 2>/dev/null || echo "No agent plists"
 echo ""
 
-echo "--- Deploy code applied ---"
-cat /Users/Shared/SplashtopStreamer/.PreInstall 2>/dev/null || echo "No .PreInstall found"
+echo "--- Deploy code / registration state ---"
+/usr/libexec/PlistBuddy -c "Print :STP:DeployCode" /Users/Shared/SplashtopStreamer/.PreInstall 2>/dev/null
+/usr/libexec/PlistBuddy -c "Print :STP:TeamCodeInUse" /Users/Shared/SplashtopStreamer/.PreInstall 2>/dev/null && echo "(TeamCodeInUse)" || echo "TeamCodeInUse: empty"
+/usr/libexec/PlistBuddy -c "Print :STP:DeployTeamNameCache" /Users/Shared/SplashtopStreamer/.PreInstall 2>/dev/null && echo "(DeployTeamNameCache)" || echo "DeployTeamNameCache: empty"
 echo ""
 
-echo "--- Splashtop installer log ---"
-cat /Users/Shared/stremer_installer.log 2>/dev/null | tail -30 || echo "No installer log"
+echo "--- Network: can reach Splashtop servers ---"
+curl -sI --max-time 5 https://api.splashtop.com 2>&1 | head -3 || echo "FAILED to reach api.splashtop.com"
+curl -sI --max-time 5 https://relay.splashtop.com 2>&1 | head -3 || echo "FAILED to reach relay.splashtop.com"
 echo ""
 
-echo "--- Screen Recording TCC ---"
-sqlite3 /Library/Application\ Support/com.apple.TCC/TCC.db \
-  "SELECT client, auth_value, auth_reason FROM access WHERE service='kTCCServiceScreenCapture';" \
-  2>/dev/null || echo "Could not read TCC db"
+echo "--- Splashtop log files ---"
+find /Users/Shared/SplashtopStreamer -name "*.log" 2>/dev/null | while read f; do
+  echo "== $f (last 20 lines) =="
+  tail -20 "$f" 2>/dev/null
+done
+find /var/log -name "*splashtop*" -o -name "*srstreamer*" 2>/dev/null | while read f; do
+  echo "== $f (last 20 lines) =="
+  tail -20 "$f" 2>/dev/null
+done
 echo ""
 
-echo "--- App bundle present ---"
-ls -la "/Applications/Splashtop Streamer.app/Contents/MacOS/" 2>/dev/null || echo "App not found"
+echo "--- Screen Recording TCC (system) ---"
+sqlite3 "/Library/Application Support/com.apple.TCC/TCC.db" \
+  "SELECT client, auth_value FROM access WHERE service='kTCCServiceScreenCapture';" \
+  2>/dev/null || echo "Could not read system TCC db"
+echo ""
+
+echo "--- MDM PPPC policies present ---"
+ls /Library/Application\ Support/com.apple.TCC/MDMOverrides.plist 2>/dev/null && \
+  cat /Library/Application\ Support/com.apple.TCC/MDMOverrides.plist 2>/dev/null || \
+  echo "No MDMOverrides.plist found — privacy profile may not have applied"
 echo ""
 
 echo "=== End Diagnostic ==="
