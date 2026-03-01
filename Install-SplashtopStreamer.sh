@@ -53,8 +53,24 @@ log " Splashtop Streamer Install — $(date)"
 log "==================================================="
 
 # ── Already installed? ───────────────────────────────────────
+# If already installed, skip the download/install but still ensure
+# the daemon and agent are running (handles machines that installed
+# but didn't register with the Splashtop console).
 if [[ -d "$APP_PATH" ]]; then
-    log "Splashtop Streamer already installed at $APP_PATH — exiting."
+    log "Splashtop Streamer already installed — ensuring services are running..."
+    DAEMON_PLIST="/Library/LaunchDaemons/com.splashtop.streamer-daemon.plist"
+    AGENT_PLIST="/Library/LaunchAgents/com.splashtop.streamer.plist"
+    CONSOLE_USER=$(stat -f "%Su" /dev/console 2>/dev/null || echo "")
+    if [[ -f "$DAEMON_PLIST" ]]; then
+        launchctl load -w "$DAEMON_PLIST" 2>/dev/null || true
+        log "Daemon loaded"
+    fi
+    if [[ -f "$AGENT_PLIST" && -n "$CONSOLE_USER" && "$CONSOLE_USER" != "root" ]]; then
+        USER_ID=$(id -u "$CONSOLE_USER" 2>/dev/null || echo "")
+        [[ -n "$USER_ID" ]] && launchctl bootstrap gui/"$USER_ID" "$AGENT_PLIST" 2>/dev/null || true
+        log "LaunchAgent bootstrapped for $CONSOLE_USER"
+    fi
+    log "=== Done ==="
     exit 0
 fi
 
