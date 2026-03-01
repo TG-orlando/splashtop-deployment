@@ -48,10 +48,8 @@
                         <string>bundleID</string>
                         <key>CodeRequirement</key>
                         <string>identifier "com.splashtop.Splashtop-Streamer" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = "CPQQ3AW49Y"</string>
-                        <key>Allowed</key>
-                        <true/>
-                        <key>StaticCode</key>
-                        <false/>
+                        <key>Authorization</key>
+                        <string>AllowStandardUserToSetSystemService</string>
                     </dict>
                 </array>
                 <key>Accessibility</key>
@@ -65,8 +63,6 @@
                         <string>identifier "com.splashtop.Splashtop-Streamer" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = "CPQQ3AW49Y"</string>
                         <key>Allowed</key>
                         <true/>
-                        <key>StaticCode</key>
-                        <false/>
                     </dict>
                 </array>
             </dict>
