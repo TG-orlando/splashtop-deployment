@@ -125,15 +125,41 @@ else
     log "         Splashtop may have installed as a LaunchDaemon only — check services"
 fi
 
-# ── Launch as the console user ───────────────────────────────
-# Kicks off the streamer so it registers with the team immediately.
-# Remove this block if you prefer it to start on next user login.
-CONSOLE_USER=$(stat -f "%Su" /dev/console 2>/dev/null || echo "")
-if [[ -n "$CONSOLE_USER" && "$CONSOLE_USER" != "root" ]]; then
-    log "Launching Splashtop Streamer as: $CONSOLE_USER"
-    sudo -u "$CONSOLE_USER" open -a "Splashtop Streamer" 2>/dev/null || true
+# ── Load LaunchDaemon (runs as root, no user session needed) ─────
+# This is the core service that registers the machine with Splashtop.
+DAEMON_PLIST="/Library/LaunchDaemons/com.splashtop.streamer-daemon.plist"
+if [[ -f "$DAEMON_PLIST" ]]; then
+    log "Loading Splashtop daemon..."
+    launchctl load -w "$DAEMON_PLIST" 2>/dev/null || true
+    sleep 3
+    if launchctl list | grep -q "com.splashtop.streamer-daemon"; then
+        log "Daemon running"
+    else
+        log "WARNING: Daemon not detected in launchctl list — may need a reboot"
+    fi
 else
-    log "No active console user — streamer will start on next login via LaunchAgent"
+    log "WARNING: Daemon plist not found at $DAEMON_PLIST"
+fi
+
+# ── Load LaunchAgent for the logged-in user ───────────────────
+# Bootstraps the user-facing streamer component so it shows up
+# in the Splashtop console immediately without requiring a logout/login.
+AGENT_PLIST="/Library/LaunchAgents/com.splashtop.streamer.plist"
+CONSOLE_USER=$(stat -f "%Su" /dev/console 2>/dev/null || echo "")
+if [[ -f "$AGENT_PLIST" && -n "$CONSOLE_USER" && "$CONSOLE_USER" != "root" ]]; then
+    USER_ID=$(id -u "$CONSOLE_USER" 2>/dev/null || echo "")
+    if [[ -n "$USER_ID" ]]; then
+        log "Bootstrapping LaunchAgent for user: $CONSOLE_USER (uid=$USER_ID)"
+        launchctl bootstrap gui/"$USER_ID" "$AGENT_PLIST" 2>/dev/null || true
+        sleep 2
+        if launchctl print gui/"$USER_ID" 2>/dev/null | grep -q "com.splashtop.streamer"; then
+            log "LaunchAgent loaded for $CONSOLE_USER"
+        else
+            log "LaunchAgent will load on next login for $CONSOLE_USER"
+        fi
+    fi
+else
+    log "No active console user — LaunchAgent will load on next login"
 fi
 
 log "=== Install complete ==="
