@@ -5,7 +5,7 @@
     <key>PayloadDisplayName</key>
     <string>Splashtop Streamer - Privacy Permissions</string>
     <key>PayloadDescription</key>
-    <string>Pre-approves Screen Recording and Accessibility for Splashtop Streamer.</string>
+    <string>Pre-approves all required permissions for Splashtop Streamer.</string>
     <key>PayloadIdentifier</key>
     <string>com.theguarantors.mdm.splashtop.privacy</string>
     <key>PayloadOrganization</key>
@@ -13,7 +13,7 @@
     <key>PayloadType</key>
     <string>Configuration</string>
     <key>PayloadUUID</key>
-    <string>B110CF89-6EFF-4DD0-9E31-8140238C931D</string>
+    <string>8ED5DEE6-765A-49EC-9449-371B7D1C8F0F</string>
     <key>PayloadVersion</key>
     <integer>1</integer>
     <key>PayloadScope</key>
@@ -26,7 +26,7 @@
             <key>PayloadDisplayName</key>
             <string>Splashtop Streamer TCC Policy</string>
             <key>PayloadDescription</key>
-            <string>Grants Screen Recording and Accessibility to Splashtop Streamer</string>
+            <string>Grants Screen Recording, Microphone, Full Disk Access and Accessibility to Splashtop Streamer</string>
             <key>PayloadIdentifier</key>
             <string>com.theguarantors.mdm.splashtop.privacy.tcc</string>
             <key>PayloadOrganization</key>
@@ -34,11 +34,12 @@
             <key>PayloadType</key>
             <string>com.apple.TCC.configuration-profile-policy</string>
             <key>PayloadUUID</key>
-            <string>611BFA9E-3C92-4023-B73A-18454959E3F4</string>
+            <string>CDC967FB-E543-4295-BF3E-E1B191CFF00A</string>
             <key>PayloadVersion</key>
             <integer>1</integer>
             <key>Services</key>
             <dict>
+
                 <key>ScreenCapture</key>
                 <array>
                     <dict>
@@ -49,9 +50,38 @@
                         <key>CodeRequirement</key>
                         <string>identifier "com.splashtop.Splashtop-Streamer" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = "CPQQ3AW49Y"</string>
                         <key>Authorization</key>
-                        <string>AllowStandardUserToSetSystemService</string>
+                        <string>Allow</string>
                     </dict>
                 </array>
+
+                <key>Microphone</key>
+                <array>
+                    <dict>
+                        <key>Identifier</key>
+                        <string>com.splashtop.Splashtop-Streamer</string>
+                        <key>IdentifierType</key>
+                        <string>bundleID</string>
+                        <key>CodeRequirement</key>
+                        <string>identifier "com.splashtop.Splashtop-Streamer" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = "CPQQ3AW49Y"</string>
+                        <key>Allowed</key>
+                        <true/>
+                    </dict>
+                </array>
+
+                <key>SystemPolicyAllFiles</key>
+                <array>
+                    <dict>
+                        <key>Identifier</key>
+                        <string>com.splashtop.Splashtop-Streamer</string>
+                        <key>IdentifierType</key>
+                        <string>bundleID</string>
+                        <key>CodeRequirement</key>
+                        <string>identifier "com.splashtop.Splashtop-Streamer" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = "CPQQ3AW49Y"</string>
+                        <key>Allowed</key>
+                        <true/>
+                    </dict>
+                </array>
+
                 <key>Accessibility</key>
                 <array>
                     <dict>
@@ -65,6 +95,7 @@
                         <true/>
                     </dict>
                 </array>
+
             </dict>
         </dict>
     </array>

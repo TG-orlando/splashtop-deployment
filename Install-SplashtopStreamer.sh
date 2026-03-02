@@ -65,7 +65,7 @@ fix_and_restart() {
     # TeamCodeInUse = deploy code    → tells Splashtop the code is accepted
     # FirstTimeLogin/Close: true     → skips first-run setup wizard
     if [[ -f "$PREINSTALL" ]]; then
-        log "Patching .PreInstall to suppress confirmation popup..."
+        log "Patching .PreInstall to suppress confirmation popup and Getting Started wizard..."
         /usr/libexec/PlistBuddy -c "Set :STP:ShowDeployLoginWarning false"  "$PREINSTALL" 2>/dev/null || true
         /usr/libexec/PlistBuddy -c "Set :STP:TeamCodeInUse WR7ZYPALWJA4"   "$PREINSTALL" 2>/dev/null || true
         /usr/libexec/PlistBuddy -c "Set :STP:LastDeployCode WR7ZYPALWJA4"  "$PREINSTALL" 2>/dev/null || true
@@ -76,11 +76,38 @@ fix_and_restart() {
         log "WARNING: .PreInstall not found at $PREINSTALL"
     fi
 
-    # Reset the denied Screen Recording TCC entry so the MDM profile applies cleanly
-    log "Resetting Screen Recording TCC entry..."
-    tccutil reset ScreenCapture com.splashtop.Splashtop-Streamer 2>/dev/null && \
-        log "TCC reset successful" || \
-        log "TCC reset returned error (may still have worked)"
+    # ── Suppress Getting Started / Security wizard ────────────────
+    # Splashtop-Streamer.plist tracks whether the setup wizard has run
+    local STREAMER_PLIST="/Users/Shared/SplashtopStreamer/Splashtop-Streamer.plist"
+    if [[ -f "$STREAMER_PLIST" ]]; then
+        log "Suppressing Getting Started wizard..."
+        /usr/libexec/PlistBuddy -c "Set :Common:ShowGetStartPage false"         "$STREAMER_PLIST" 2>/dev/null || \
+        /usr/libexec/PlistBuddy -c "Add :Common:ShowGetStartPage bool false"    "$STREAMER_PLIST" 2>/dev/null || true
+        /usr/libexec/PlistBuddy -c "Set :Common:IsFirstLaunch false"            "$STREAMER_PLIST" 2>/dev/null || \
+        /usr/libexec/PlistBuddy -c "Add :Common:IsFirstLaunch bool false"       "$STREAMER_PLIST" 2>/dev/null || true
+        log "Wizard suppressed"
+    fi
+
+    # Also patch per-user Splashtop prefs for the logged-in user
+    if [[ -n "$CONSOLE_USER" && "$CONSOLE_USER" != "root" ]]; then
+        local USER_PREF
+        USER_PREF=$(eval echo "~$CONSOLE_USER/Library/Preferences/com.splashtop.Splashtop-Streamer.plist")
+        if [[ -f "$USER_PREF" ]]; then
+            /usr/libexec/PlistBuddy -c "Set :ShowGetStartPage false"  "$USER_PREF" 2>/dev/null || \
+            /usr/libexec/PlistBuddy -c "Add :ShowGetStartPage bool false" "$USER_PREF" 2>/dev/null || true
+            /usr/libexec/PlistBuddy -c "Set :IsFirstLaunch false"     "$USER_PREF" 2>/dev/null || \
+            /usr/libexec/PlistBuddy -c "Add :IsFirstLaunch bool false" "$USER_PREF" 2>/dev/null || true
+            log "User pref plist patched for $CONSOLE_USER"
+        fi
+    fi
+
+    # Reset TCC for all affected services so MDM profile re-applies cleanly
+    log "Resetting TCC entries for all Splashtop permissions..."
+    tccutil reset ScreenCapture  com.splashtop.Splashtop-Streamer 2>/dev/null || true
+    tccutil reset Microphone     com.splashtop.Splashtop-Streamer 2>/dev/null || true
+    tccutil reset SystemPolicyAllFiles com.splashtop.Splashtop-Streamer 2>/dev/null || true
+    log "TCC reset complete"
+
 
     # Restart daemon
     if [[ -f "$DAEMON_PLIST" ]]; then
