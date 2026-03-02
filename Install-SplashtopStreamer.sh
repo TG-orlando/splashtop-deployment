@@ -52,24 +52,55 @@ log "==================================================="
 log " Splashtop Streamer Install — $(date)"
 log "==================================================="
 
-# ── Already installed? ───────────────────────────────────────
-# If already installed, skip the download/install but still ensure
-# the daemon and agent are running (handles machines that installed
-# but didn't register with the Splashtop console).
-if [[ -d "$APP_PATH" ]]; then
-    log "Splashtop Streamer already installed — ensuring services are running..."
-    DAEMON_PLIST="/Library/LaunchDaemons/com.splashtop.streamer-daemon.plist"
-    AGENT_PLIST="/Library/LaunchAgents/com.splashtop.streamer.plist"
+# ── Shared function: reset TCC + restart services ────────────
+fix_and_restart() {
+    local DAEMON_PLIST="/Library/LaunchDaemons/com.splashtop.streamer-daemon.plist"
+    local AGENT_PLIST="/Library/LaunchAgents/com.splashtop.streamer.plist"
+    local CONSOLE_USER
     CONSOLE_USER=$(stat -f "%Su" /dev/console 2>/dev/null || echo "")
+
+    # Reset the denied Screen Recording TCC entry so the MDM profile applies cleanly
+    log "Resetting Screen Recording TCC entry..."
+    tccutil reset ScreenCapture com.splashtop.Splashtop-Streamer 2>/dev/null && \
+        log "TCC reset successful" || \
+        log "TCC reset returned error (may still have worked)"
+
+    # Restart daemon
     if [[ -f "$DAEMON_PLIST" ]]; then
-        launchctl load -w "$DAEMON_PLIST" 2>/dev/null || true
-        log "Daemon loaded"
+        log "Restarting Splashtop daemon..."
+        launchctl kickstart -k system/com.splashtop.streamer-daemon 2>/dev/null || \
+            launchctl load -w "$DAEMON_PLIST" 2>/dev/null || true
+        log "Daemon restarted"
     fi
-    if [[ -f "$AGENT_PLIST" && -n "$CONSOLE_USER" && "$CONSOLE_USER" != "root" ]]; then
+
+    sleep 3
+
+    # Restart agent for logged-in user
+    if [[ -n "$CONSOLE_USER" && "$CONSOLE_USER" != "root" ]]; then
+        local USER_ID
         USER_ID=$(id -u "$CONSOLE_USER" 2>/dev/null || echo "")
-        [[ -n "$USER_ID" ]] && launchctl bootstrap gui/"$USER_ID" "$AGENT_PLIST" 2>/dev/null || true
-        log "LaunchAgent bootstrapped for $CONSOLE_USER"
+        if [[ -n "$USER_ID" ]]; then
+            log "Restarting Splashtop agent for: $CONSOLE_USER"
+            launchctl kickstart -k gui/"$USER_ID"/com.splashtop.streamer 2>/dev/null || true
+            [[ -f "$AGENT_PLIST" ]] && \
+                launchctl bootstrap gui/"$USER_ID" "$AGENT_PLIST" 2>/dev/null || true
+            log "Agent restarted"
+        fi
+    else
+        log "No active console user — agent will start on next login"
     fi
+
+    sleep 3
+    pgrep -q SRStreamerDaemon && log "SRStreamerDaemon running ✓" || log "WARNING: SRStreamerDaemon not detected"
+    pgrep -q "Splashtop Streamer" && log "Splashtop Streamer agent running ✓" || log "Agent not running — will start on next login"
+}
+
+# ── Already installed? ───────────────────────────────────────
+# Reset TCC + restart services so devices that installed but never
+# registered with the Splashtop console get fixed automatically.
+if [[ -d "$APP_PATH" ]]; then
+    log "Splashtop Streamer already installed — resetting permissions and restarting..."
+    fix_and_restart
     log "=== Done ==="
     exit 0
 fi
@@ -141,42 +172,8 @@ else
     log "         Splashtop may have installed as a LaunchDaemon only — check services"
 fi
 
-# ── Load LaunchDaemon (runs as root, no user session needed) ─────
-# This is the core service that registers the machine with Splashtop.
-DAEMON_PLIST="/Library/LaunchDaemons/com.splashtop.streamer-daemon.plist"
-if [[ -f "$DAEMON_PLIST" ]]; then
-    log "Loading Splashtop daemon..."
-    launchctl load -w "$DAEMON_PLIST" 2>/dev/null || true
-    sleep 3
-    if launchctl list | grep -q "com.splashtop.streamer-daemon"; then
-        log "Daemon running"
-    else
-        log "WARNING: Daemon not detected in launchctl list — may need a reboot"
-    fi
-else
-    log "WARNING: Daemon plist not found at $DAEMON_PLIST"
-fi
-
-# ── Load LaunchAgent for the logged-in user ───────────────────
-# Bootstraps the user-facing streamer component so it shows up
-# in the Splashtop console immediately without requiring a logout/login.
-AGENT_PLIST="/Library/LaunchAgents/com.splashtop.streamer.plist"
-CONSOLE_USER=$(stat -f "%Su" /dev/console 2>/dev/null || echo "")
-if [[ -f "$AGENT_PLIST" && -n "$CONSOLE_USER" && "$CONSOLE_USER" != "root" ]]; then
-    USER_ID=$(id -u "$CONSOLE_USER" 2>/dev/null || echo "")
-    if [[ -n "$USER_ID" ]]; then
-        log "Bootstrapping LaunchAgent for user: $CONSOLE_USER (uid=$USER_ID)"
-        launchctl bootstrap gui/"$USER_ID" "$AGENT_PLIST" 2>/dev/null || true
-        sleep 2
-        if launchctl print gui/"$USER_ID" 2>/dev/null | grep -q "com.splashtop.streamer"; then
-            log "LaunchAgent loaded for $CONSOLE_USER"
-        else
-            log "LaunchAgent will load on next login for $CONSOLE_USER"
-        fi
-    fi
-else
-    log "No active console user — LaunchAgent will load on next login"
-fi
+# ── Reset TCC + start services ────────────────────────────────
+fix_and_restart
 
 log "=== Install complete ==="
 exit 0
