@@ -5,7 +5,7 @@
     <key>PayloadDisplayName</key>
     <string>Splashtop Streamer - Privacy Permissions</string>
     <key>PayloadDescription</key>
-    <string>Pre-approves all required permissions for Splashtop Streamer.</string>
+    <string>Pre-approves required permissions for Splashtop Streamer.</string>
     <key>PayloadIdentifier</key>
     <string>com.theguarantors.mdm.splashtop.privacy</string>
     <key>PayloadOrganization</key>
@@ -26,7 +26,7 @@
             <key>PayloadDisplayName</key>
             <string>Splashtop Streamer TCC Policy</string>
             <key>PayloadDescription</key>
-            <string>Grants Screen Recording, Microphone, Full Disk Access and Accessibility to Splashtop Streamer</string>
+            <string>Grants Screen Recording and Accessibility to Splashtop Streamer</string>
             <key>PayloadIdentifier</key>
             <string>com.theguarantors.mdm.splashtop.privacy.tcc</string>
             <key>PayloadOrganization</key>
@@ -51,34 +51,6 @@
                         <string>identifier "com.splashtop.Splashtop-Streamer" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = "CPQQ3AW49Y"</string>
                         <key>Authorization</key>
                         <string>AllowStandardUserToSetSystemService</string>
-                    </dict>
-                </array>
-
-                <key>Microphone</key>
-                <array>
-                    <dict>
-                        <key>Identifier</key>
-                        <string>com.splashtop.Splashtop-Streamer</string>
-                        <key>IdentifierType</key>
-                        <string>bundleID</string>
-                        <key>CodeRequirement</key>
-                        <string>identifier "com.splashtop.Splashtop-Streamer" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = "CPQQ3AW49Y"</string>
-                        <key>Authorization</key>
-                        <string>Allow</string>
-                    </dict>
-                </array>
-
-                <key>SystemPolicyAllFiles</key>
-                <array>
-                    <dict>
-                        <key>Identifier</key>
-                        <string>com.splashtop.Splashtop-Streamer</string>
-                        <key>IdentifierType</key>
-                        <string>bundleID</string>
-                        <key>CodeRequirement</key>
-                        <string>identifier "com.splashtop.Splashtop-Streamer" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = "CPQQ3AW49Y"</string>
-                        <key>Authorization</key>
-                        <string>Allow</string>
                     </dict>
                 </array>
 
