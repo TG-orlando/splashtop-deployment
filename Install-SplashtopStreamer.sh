@@ -52,12 +52,29 @@ log "==================================================="
 log " Splashtop Streamer Install — $(date)"
 log "==================================================="
 
-# ── Shared function: reset TCC + restart services ────────────
+# ── Shared function: suppress popup + reset TCC + restart ────
 fix_and_restart() {
     local DAEMON_PLIST="/Library/LaunchDaemons/com.splashtop.streamer-daemon.plist"
     local AGENT_PLIST="/Library/LaunchAgents/com.splashtop.streamer.plist"
+    local PREINSTALL="/Users/Shared/SplashtopStreamer/.PreInstall"
     local CONSOLE_USER
     CONSOLE_USER=$(stat -f "%Su" /dev/console 2>/dev/null || echo "")
+
+    # ── Patch .PreInstall to suppress the Confirm/Reject popup ───
+    # ShowDeployLoginWarning: false  → no popup ever again
+    # TeamCodeInUse = deploy code    → tells Splashtop the code is accepted
+    # FirstTimeLogin/Close: true     → skips first-run setup wizard
+    if [[ -f "$PREINSTALL" ]]; then
+        log "Patching .PreInstall to suppress confirmation popup..."
+        /usr/libexec/PlistBuddy -c "Set :STP:ShowDeployLoginWarning false"  "$PREINSTALL" 2>/dev/null || true
+        /usr/libexec/PlistBuddy -c "Set :STP:TeamCodeInUse WR7ZYPALWJA4"   "$PREINSTALL" 2>/dev/null || true
+        /usr/libexec/PlistBuddy -c "Set :STP:LastDeployCode WR7ZYPALWJA4"  "$PREINSTALL" 2>/dev/null || true
+        /usr/libexec/PlistBuddy -c "Set :STP:FirstTimeLogin true"           "$PREINSTALL" 2>/dev/null || true
+        /usr/libexec/PlistBuddy -c "Set :STP:FirstTimeClose true"           "$PREINSTALL" 2>/dev/null || true
+        log ".PreInstall patched"
+    else
+        log "WARNING: .PreInstall not found at $PREINSTALL"
+    fi
 
     # Reset the denied Screen Recording TCC entry so the MDM profile applies cleanly
     log "Resetting Screen Recording TCC entry..."
